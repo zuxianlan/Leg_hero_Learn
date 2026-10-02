@@ -1,0 +1,20 @@
+# 保持源码原始字节，不做换行符归一化。
+#
+# 原因：本工程工作区是 CRLF 与 LF 混合的（原始 STM32 工程即如此）。
+# 若启用 Git 的自动换行符转换（core.autocrlf），GitHub 上的仓库会因为
+# 归一化而与本地源码不一致；克隆到其他机器时行尾也会被改写，
+# 导致微控制器固件的构建产物不可复现，且产生大量无意义的 diff。
+#
+# 声明 -text 后：Git 按原样存储与检出，任何平台克隆下来都与本地逐字节一致。
+* -text
+
+# 二进制资源显式标注，避免被当作文本处理
+*.a      binary
+*.elf    binary
+*.hex    binary
+*.bin    binary
+*.o      binary
+*.obj    binary
+*.png    binary
+*.jpg    binary
+*.ico    binary
