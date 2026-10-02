@@ -50,11 +50,6 @@ typedef enum
     NORMAL, // 底盘正常状态
     OVER_TURN, // 底盘翻倒
     OVER_TURNING, // 底盘正在翻身
-    READY_TO_JUMP, // 准备跳跃
-    GATHER_STRENGTH, // 跳跃蓄力
-    TAKE_OFF_TO_JUMP, // 起跳伸腿
-    LANDING_CUSHIONING, // 落地缓冲
-    ABOVE_GROUND, // 底盘离地
 } chassis_fsm_mode_e;
 
 typedef struct
@@ -131,4 +126,5 @@ typedef struct
 
 extern uint8_t cap[8];
 extern chassis_move_t chassis_move;
+extern chassis_mode_e chassis_mode;
 #endif //CHASSISL_TASK_H

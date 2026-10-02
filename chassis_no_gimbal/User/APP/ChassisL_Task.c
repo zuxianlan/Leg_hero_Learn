@@ -18,6 +18,7 @@
 #include "motor_dji.h"
 #include "motor_dm.h"
 #include "Can_Comm_Task.h"
+#include "chassis_behaviour.h"
 #include "chassis_kalman.h"
 #include "user_lib.h"
 
@@ -34,7 +35,6 @@ extern float mpc_out;
 /* Function Declaration ------------------------------------------------------*/
 static void chassis_init(chassis_move_t * chassis_move_init);
 static void chassis_mode_set(const chassis_move_t *chassis);
-static void chassis_set_control(chassis_move_t *chassis);
 void Chassis_Feedback_Update(chassis_move_t *chassis);
 static void chassis_control_loop(chassis_move_t *chassis);
 static void chassis_lqr_calc_to_motor(chassis_move_t *chassis);
@@ -174,70 +174,7 @@ static void chassis_mode_set(const chassis_move_t *chassis)
 
 }
 
-/**
- * @brief 设置底盘目标值
- * @param
- * @return
- */
-static void chassis_set_control(chassis_move_t *chassis)
-{
-    if (chassis == NULL)  {return;}
-    if (chassis_mode == CHASSIS_ZERO_FORCE)
-    {
-        chassis_move.Target_Omega = 0.0f;
-        chassis_move.Target_Roll = 0.0f;
-        chassis_move.Target_Theta = 0.0f;
-        chassis->Target_X = chassis->X_filter;
 
-    }
-    else if (chassis_mode == CHASSIS_CHECK_IN)
-    {
-        float vx_channel = 0, vy_channel = 0, vz_channel = 0;
-        vx_channel = -chassis->chassis_RC->RC.ch[2];
-        // 遥控器摇杆可能存在偏差，死区范围内的输入置零
-        vx_channel = Float_Math_Abs(vx_channel) > DR16_Rocker_Dead_Zone ? vx_channel : 0.0f;
-        // 设置速度
-        chassis_move.Target_Velocity_X = vx_channel * MAX_Velocity_X;
-        // 设置偏航角速度
-        chassis_move.Target_Omega = 0.0f;
-        // 设置偏航目标
-        //chassis_move.Target_Yaw = vy_channel;
-        // 设置横滚目标
-        chassis_move.Target_Roll = 0.0f;
-        // 设置 theta 误差目标
-        chassis_move.Target_Theta = 0.0f;
-
-        chassis_move.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
-        chassis_move.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
-    }
-    else if (chassis_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
-    {
-        float vx_channel = 0, vy_channel = 0, vz_channel = 0;
-        vx_channel = chassis->chassis_RC->RC.ch[3];
-        //vy_channel = chassis->chassis_RC->RC.ch[1];
-        vz_channel = chassis->chassis_RC->RC.ch[1];
-        // 遥控器摇杆可能存在偏差，死区范围内的输入置零
-        vx_channel = Float_Math_Abs(vx_channel) > DR16_Rocker_Dead_Zone ? vx_channel : 0.0f;
-        vy_channel = Float_Math_Abs(vy_channel) > DR16_Rocker_Dead_Zone ? vy_channel : 0.0f;
-        vz_channel = Float_Math_Abs(vz_channel) > DR16_Rocker_Dead_Zone ? vz_channel : 0.0f;
-
-        // 设置速度
-        chassis_move.Target_Velocity_X = vx_channel * MAX_Velocity_X;
-        // 设置偏航角速度
-        // chassis_move.Target_Omega = -chassis_move.PID_follow_yaw.Out;
-        chassis_move.Target_Omega = 0.0f;
-        // 设置偏航目标
-        //chassis_move.Target_Velocity_Y = vy_channel * MAX_Velocity_Y;
-        // 设置横滚目标
-        chassis_move.Target_Roll = 0.0f;
-        // 设置 theta 误差目标
-        chassis_move.Target_Theta = 0.04f;
-
-        chassis_move.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
-        chassis_move.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
-    }
-
-}
 
 //反馈更新
 void Chassis_Feedback_Update(chassis_move_t *chassis)
