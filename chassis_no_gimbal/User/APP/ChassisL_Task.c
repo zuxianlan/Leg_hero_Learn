@@ -36,7 +36,7 @@ extern float mpc_out;
 static void chassis_init(chassis_move_t * chassis_move_init);
 void Chassis_Feedback_Update(chassis_move_t *chassis);
 static void chassis_control_loop(chassis_move_t *chassis);
-static void chassis_pid_loop(chassis_move_t *chassis);
+static void chassis_normal_pid_loop(chassis_move_t *chassis);
 static void chassis_lqr_calc_to_motor(chassis_move_t *chassis);
 static void chassis_output_to_motor(chassis_move_t *chassis);
 void Chassis_Motor_Status_PeriodElapsedCallback(chassis_move_t *chassis);
@@ -136,7 +136,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->PID_legL_Velocity.Target = 0.0f;
     chassis_move_init->PID_legR_Velocity.Target = 0.0f;
     //斜坡函数初始化
-    slope_init(&chassis_move_init->Slope_X,1.0f / 5000.0f, 1.0f / 600.0f,Slope_First_REAL);
+    slope_init(&chassis_move_init->Slope_X,1.0f / 1250.0f, 1.0f / 150.0f,Slope_First_REAL);
 
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[0]);
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[1]);
@@ -217,13 +217,17 @@ static void chassis_control_loop(chassis_move_t *chassis)
         if (FSM_Get_Now_Status(&chassis_move.FSM) == NORMAL)
         {
             //正常pid计算
-            chassis_pid_loop(chassis);
+            chassis_normal_pid_loop(chassis);
             //lqr计算
             chassis_lqr_calc_to_motor(chassis);
         }
+        else if (FSM_Get_Now_Status(&chassis_move.FSM) == OVER_TURN)
+        {
+            chassis_over_turn_mod(chassis);
+        }
         else
         {
-            chassis_over_turn_mod(chassis);       /* 收腿：腿长压最短 + 髋力矩 */
+            chassis_control_leg_pid_loop(chassis);       /* 收腿：腿长压最短 + 髋力矩 */
         }
     }
     else
@@ -252,7 +256,7 @@ static void chassis_control_loop(chassis_move_t *chassis)
  * @param
  * @return
  */
-static void chassis_pid_loop(chassis_move_t *chassis)
+static void chassis_normal_pid_loop(chassis_move_t *chassis)
 {
     //设定速度
     chassis->Slope_X.Target = chassis->Target_Velocity_X;

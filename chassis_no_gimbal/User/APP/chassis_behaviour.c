@@ -109,20 +109,29 @@ void FSM_TIM_Calculate_PeriodElapsedCallback_Chassis(FSM_t *FSM)
     switch (FSM->Now_Status)
     {
     case NORMAL:
-        if (theta_l >= 1.1f || theta_r >= 1.1f)
+        if (theta_l > 0.9f || theta_r > 0.9f || theta_l < -0.9f || theta_r < -0.9f)
         {
-            FSM_Set_Status(FSM, OVER_TURNING);
+            FSM_Set_Status(FSM, OVER_TURN);
         }
         break;
-    // case OVER_TURN:
-    //     if (Float_Math_Abs(theta_l - theta_r) <= 0.5f)
-    //     {
-    //         if (theta_l >= 0.7f || theta_r >= 0.7f)
-    //         {
-    //             FSM_Set_Status(FSM, OVER_TURNING);
-    //         }
-    //     }
-    //    break;
+    case OVER_TURN:
+        if (Float_Math_Abs(theta_l - theta_r) < 0.3f)
+        {
+            if (theta_l >= 0.7f || theta_r >= 0.7f)
+            {
+                FSM_Set_Status(FSM, OVER_TURNING);
+            }
+        }
+        // else
+        // {
+        //     /* 双腿劈开：一腿 ≥ 0.9 而另一腿仍在 [-0.8, 0.4] */
+        //     if ((theta_l >= 0.9f && theta_r <= 0.4f && theta_r >= -0.8f) ||
+        //         (theta_r >= 0.9f && theta_l <= 0.4f && theta_l >= -0.8f))
+        //     {
+        //         FSM_Set_Status(FSM, OVER_TURNING);
+        //     }
+        // }
+       break;
     case OVER_TURNING:
         if (Float_Math_Abs(pitch) <= PI/4.0f && theta_l <= 0.2f && theta_l >= -0.8f && theta_r <= 0.2f && theta_r >= -0.8f && L0_l < 0.2f && L0_r < 0.2f)
         {
@@ -159,7 +168,7 @@ void chassis_control_right_leg(float target)
     {
         // LQR力矩计算
         chassis_move.T_wr = 0.0f;
-        chassis_move.right_leg.Tp = (chassis_move.right_leg.d_theta - target) * Fitting_K[2][5];
+        chassis_move.right_leg.Tp = (chassis_move.right_leg.d_theta - target) * Fitting_K[3][7];
         chassis_move.right_leg.F0 = 0.0f;
         VMC_Calc_2(&chassis_move.right_leg);
     }
@@ -173,6 +182,32 @@ void chassis_control_right_leg(float target)
 }
 
 void chassis_over_turn_mod(chassis_move_t *chassis)
+{
+    chassis->Target_Velocity_X = 0.0f;
+    chassis->Target_X          = 0.0f;
+    chassis->Target_Omega      = 0.0f;
+    chassis->Target_Roll       = 0.0f;
+    chassis->Target_Theta      = 0.0f;
+
+    if (chassis->left_leg.theta < -0.9f || chassis->left_leg.theta > 1.4f)
+    {
+        chassis_control_left_leg(-4.0f);
+    }
+    else
+    {
+        chassis_control_left_leg(0.0f);
+    }
+    if (chassis->right_leg.theta < -0.9f || chassis->right_leg.theta > 1.4f)
+    {
+        chassis_control_right_leg(-4.0f);
+    }
+    else
+    {
+        chassis_control_right_leg(0.0f);
+    }
+
+}
+void chassis_control_leg_pid_loop(chassis_move_t *chassis)
 {
     /* 轮子零力矩 */
     chassis->T_wl = 0.0f;
