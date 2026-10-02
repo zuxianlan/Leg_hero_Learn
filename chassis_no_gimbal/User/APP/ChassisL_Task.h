@@ -58,6 +58,7 @@ typedef struct
     const INS_t *chassis_INS_point;
     RC_ctrl_t Chassis_RC;
     Slope_t Slope_X; //Ð±ÆÂº¯Êý
+    FSM_t FSM; // µ×ÅÌ×´Ì¬»úÇÐ»»º¯Êý
 
     cap_rx_data_t Super_Cap_Rx;
     cap_tx_data_t Super_Cap_Tx;
@@ -125,6 +126,7 @@ typedef struct
 /* Function ------------------------------------------------------------------*/
 
 extern uint8_t cap[8];
+extern float Fitting_K[4][10];
 extern chassis_move_t chassis_move;
 extern chassis_mode_e chassis_mode;
 #endif //CHASSISL_TASK_H
