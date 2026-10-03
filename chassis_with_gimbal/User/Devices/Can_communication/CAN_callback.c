@@ -64,7 +64,7 @@ void CAN_Motor_Call_Back_FDCAN3(Struct_CAN_Rx_Buffer *Rx_Buffer)
     switch (Rx_Buffer->Header.Identifier)
     {
     case 0x88:
-        //Can_Receive_Solution(&Can_Comm.Can_Remote_Data, Rx_Buffer->Data);
+        Can_Receive_Solution(&Can_Comm.Can_Remote_Data, Rx_Buffer->Data);
         break;
     case 0x99:
         Can_Control_Data_Solution(&Can_Comm.Can_Control_Data, Rx_Buffer->Data);

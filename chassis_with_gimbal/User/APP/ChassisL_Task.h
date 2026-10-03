@@ -26,7 +26,7 @@
 #define RC_to_Chassis_Leg_Gain 0.0006f
 #define DR16_Rocker_Dead_Zone 0.05f
 // 最大速度
-#define MAX_Velocity_X 2.5f
+#define MAX_Velocity_X 2.0f
 #define MAX_Velocity_Y 1.0f
 #define B_TRACK   0.49f      /* 左右轮距，按实际量 */
 /* Enum ----------------------------------------------------------------------*/
@@ -122,6 +122,11 @@ typedef struct
     float T_bl; //左髋关节力矩
     float T_br; //右髋关节力矩
     float err[10]; // 10 维状态误差向量，顺序：X ? 偏航 偏航率 θ_L θ?_L θ_R θ?_R 机体俯仰 俯仰率
+
+    /* ---- 停车判定与静止位置闭环 ---- */
+    uint8_t stop_flag;        /* 1 = 已停稳，位置环使能 */
+    uint8_t last_stop_flag;   /* 上一周期状态，用于捕捉"刚停下"那一拍 */
+    float   last_Target_X;    /* 停止后锁存的位置目标 */
 } chassis_move_t;
 
 /* Function Declaration ------------------------------------------------------*/

@@ -42,6 +42,7 @@ static void chassis_output_to_motor(chassis_move_t *chassis);
 void Chassis_Motor_Status_PeriodElapsedCallback(chassis_move_t *chassis);
 void chassis_motor_keep_alive(chassis_move_t *chassis);
 static float Max_Output(float num,float max);
+void chassis_stop_state_machine(chassis_move_t *chassis);
 
 uint8_t cap[8] = {0};
 float Fitting_K[4][10] = {}; // 10 维 LQR 增益矩阵（4输入×10状态，由 P[40][6] 系数表按左右腿长实时重建）
@@ -63,19 +64,16 @@ void ChassisL_Task(void)
 
     while (1)
     {
-        //目标设置
-        chassis_mode_set(&chassis_move);
+        chassis_mode_set(&chassis_move); //目标设置
         chassis_set_control(&chassis_move);
-        //底盘数据更新
-        Chassis_Feedback_Update(&chassis_move);
-        //PID计算
-        chassis_control_loop(&chassis_move);
+        chassis_stop_state_machine(&chassis_move);
+        Chassis_Feedback_Update(&chassis_move); //底盘数据更新
+        chassis_control_loop(&chassis_move); //PID计算,lqr计算
 
         chassis_output_to_motor(&chassis_move);
         Chassis_Motor_Status_PeriodElapsedCallback(&chassis_move);
         CAP_AddTxPacket(&chassis_move.Super_Cap_Tx, cap);
-        //轮电机，超电数据发送
-        TIM_CAN_PeriodElapsedCallback();
+        TIM_CAN_PeriodElapsedCallback(); //轮电机，超电数据发送
 
         osDelay(1);
     }
@@ -89,7 +87,7 @@ void ChassisL_Task(void)
  */
 static void chassis_init(chassis_move_t *chassis_move_init)
 {
-    remote_control_init();
+    //remote_control_init();
     chassis_move_init->chassis_RC = get_remote_control_point();
     chassis_move_init->chassis_INS_point = get_INS_point();
 
@@ -136,7 +134,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->PID_legL_Velocity.Target = 0.0f;
     chassis_move_init->PID_legR_Velocity.Target = 0.0f;
     //斜坡函数初始化
-    slope_init(&chassis_move_init->Slope_X,1.0f / 1000.0f, 1.0f / 150.0f,Slope_First_REAL);
+    slope_init(&chassis_move_init->Slope_X,12.0f / 1000.0f, 1.0f / 150.0f,Slope_First_REAL);
 
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[0]);
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[1]);
@@ -186,7 +184,7 @@ void Chassis_Feedback_Update(chassis_move_t *chassis)
     chassis_kalman_update(&chassis_kalman);
     chassis->X_filter += chassis->Velocity_filter * (float)chassis_time/1000.0f;
 
-    chassis->M = 70.0f;
+    chassis->M = 180.0f;
     chassis_move.F_mc = chassis->Velocity_filter * chassis->chassis_INS_point->Gyro[2] * 28.0f;
     Math_Constrain(&chassis->F_mc, 0.0f, 100.0f);
     chassis->spring_force_l = 100.0f - 10.0f*(1.0f - (chassis->left_leg.L0-0.1f)/0.28f);
@@ -237,6 +235,8 @@ static void chassis_control_loop(chassis_move_t *chassis)
         PID_Clear_Out(&chassis->PID_legR_Position);
         PID_Clear_Out(&chassis->PID_legL_Velocity);
         PID_Clear_Out(&chassis->PID_legR_Velocity);
+        PID_Clear_Out(&chassis->PID_follow_yaw);
+        //PID_Set_Integral_Error(&chassis_move.PID_follow_yaw, 0.0f);
         PID_Clear_Out(&chassis->PID_tp);
         PID_Clear_Out(&chassis->PID_tp_omega);
         chassis->T_wl = 0.0f;
@@ -287,9 +287,12 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
     chassis->PID_legR_Velocity.Now = chassis->right_leg.d_L0;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_legR_Velocity);
 
+    // 云台跟随偏航：目标与反馈保持同一坐标系，误差折叠到 ±π 走最短路径
+    float yaw_now = chassis->Motor_Yaw.Rx_Data.Now_Angle;          // 原始多圈角
+    float yaw_err = normalizeAngleToPi_Robust(chassis->follow_yaw_offset - yaw_now);
     // 设置yaw目标
     chassis->PID_follow_yaw.Target = chassis->follow_yaw_offset;
-    chassis->PID_follow_yaw.Now = normalizeAngleToPi_Robust(chassis->Motor_Yaw.Rx_Data.Now_Angle);
+    chassis->PID_follow_yaw.Now = chassis->follow_yaw_offset - yaw_err;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_follow_yaw);
 
     // 设置横滚目标
@@ -376,13 +379,13 @@ static void chassis_output_to_motor(chassis_move_t *chassis)
 
     if (chassis_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
     {
-        chassis->Motor_Joint[3].Control_Torque = float_constrain(chassis->right_leg.torque_set[1] * 1.0f, -30.0f, 30.0f);
-        chassis->Motor_Joint[2].Control_Torque = float_constrain(chassis->right_leg.torque_set[0] * 1.0f, -30.0f, 30.0f);
-        chassis->Motor_Joint[1].Control_Torque = float_constrain(-chassis->left_leg.torque_set[1] * 1.0f, -30.0f, 30.0f);
-        chassis->Motor_Joint[0].Control_Torque = float_constrain(-chassis->left_leg.torque_set[0] * 1.0f, -30.0f, 30.0f);
+        chassis->Motor_Joint[3].Control_Torque = float_constrain(chassis->right_leg.torque_set[1] * 1.0f, -35.0f, 35.0f);
+        chassis->Motor_Joint[2].Control_Torque = float_constrain(chassis->right_leg.torque_set[0] * 1.0f, -35.0f, 35.0f);
+        chassis->Motor_Joint[1].Control_Torque = float_constrain(-chassis->left_leg.torque_set[1] * 1.0f, -35.0f, 35.0f);
+        chassis->Motor_Joint[0].Control_Torque = float_constrain(-chassis->left_leg.torque_set[0] * 1.0f, -35.0f, 35.0f);
 
-        chassis->Motor_Wheel[0].Target_Current = float_constrain(4.0f * chassis->T_wl, -3.0f, 3.0f);
-        chassis->Motor_Wheel[1].Target_Current = float_constrain(-4.0f * chassis->T_wr, -3.0f, 3.0f);
+        chassis->Motor_Wheel[0].Target_Current = float_constrain(4.0f * chassis->T_wl, -15.0f, 15.0f);
+        chassis->Motor_Wheel[1].Target_Current = float_constrain(-4.0f * chassis->T_wr, -15.0f, 15.0f);
 
         // chassis->Motor_Joint[3].Control_Torque = 0.0f;
         // chassis->Motor_Joint[2].Control_Torque = 0.0f;
@@ -425,8 +428,8 @@ static void chassis_output_to_motor(chassis_move_t *chassis)
     Motor_C620_TIM_Calculate_PeriodElapsedCallback(&chassis->Motor_Wheel[1]);
 
     // ★ 与香橙派一致：位置通道按拍归零（位置项不介入，只保留速度环）
-    chassis->X_filter = 0.0f;
-    chassis->Target_X = chassis->X_filter;
+    // chassis->X_filter = 0.0f;
+    // chassis->Target_X = chassis->X_filter;
 }
 
 void chassis_motor_keep_alive(chassis_move_t *chassis)
@@ -513,4 +516,67 @@ static float Max_Output(float num,float max)
     if(num>=max) return max;
     else if(num<=-max) return -max;
     else return num;
+}
+
+/**
+ * @brief  停车判定 + 静止位置闭环 + 静止腿角偏置
+ * @note   必须在 Chassis_Feedback_Update() 之前调用，
+ *         因为 err[0] / err[4] / err[6] 都在那里一次算完。
+ *         对应香橙派 Chassis.cpp::Follow_Gimbal_Control() 里的 stop_flag 段（383-413 行）。
+ */
+void chassis_stop_state_machine(chassis_move_t *chassis)
+{
+    /* ---- 只在跟云台模式下生效；其它模式保持位置环关闭 ---- */
+    if (chassis_mode != CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
+    {
+        chassis->X_filter       = 0.0f;
+        chassis->Target_X       = 0.0f;
+        chassis->last_Target_X  = 0.0f;
+        chassis->Target_Theta   = 0.0f;
+        chassis->stop_flag      = 1;
+        chassis->last_stop_flag = 1;
+        return;
+    }
+
+    /* ================= 1. 停车判定（带回差，防止阈值附近抖动） ================= */
+    if (Float_Math_Abs(chassis->Target_Velocity_X) < 0.05f &&
+        Float_Math_Abs(chassis->Velocity_filter)    < 0.5f)
+    {
+        chassis->stop_flag = 1;      /* 指令小 且 实际也慢 -> 认为停稳 */
+    }
+    else if (Float_Math_Abs(chassis->Target_Velocity_X) > 0.01f)
+    {
+        chassis->stop_flag = 0;      /* 一有明确指令 -> 立即解除，保证起步不拖 */
+    }
+
+    /* ============ 2. 按状态分配 X_filter / Target_X / Target_Theta ============ */
+    if (chassis->stop_flag)
+    {
+        if (!chassis->last_stop_flag)
+        {
+            /* 刚进入停止：把当前位置定为原点，这一拍还不启用位置环 */
+            chassis->X_filter      = 0.0f;
+            chassis->Target_X      = chassis->X_filter;
+            chassis->last_Target_X = chassis->X_filter;
+            chassis->Target_Theta  = 0.0f;
+        }
+        else
+        {
+            /* 持续停止：X_filter 不再清零，让它自由积分，
+               于是 err[0] = X_filter - Target_X(0) 就是"回到停车点"的位置误差 */
+            chassis->Target_X     = chassis->last_Target_X;   /* 恒为 0 */
+            chassis->Target_Theta = 0.05f;              /* 静止预紧偏置 */
+        }
+    }
+    else
+    {
+        /* 运动中：位置环彻底关掉；Target_Theta 归零，
+           否则这个常值偏置会在行驶时吃掉绝大部分轮电流预算 */
+        chassis->X_filter      = 0.0f;
+        chassis->Target_X      = chassis->X_filter;
+        chassis->last_Target_X = chassis->X_filter;
+        chassis->Target_Theta  = 0.0f;
+    }
+
+    chassis->last_stop_flag = chassis->stop_flag;
 }
