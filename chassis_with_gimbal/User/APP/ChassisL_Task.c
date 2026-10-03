@@ -343,10 +343,7 @@ static void chassis_lqr_calc_to_motor(chassis_move_t *chassis)
     chassis->left_leg.Tp = chassis->T[2];
     chassis->right_leg.Tp = chassis->T[3];
     chassis->left_leg.F0 = (chassis->PID_legL_Position.Out + chassis->PID_legL_Velocity.Out - chassis->spring_force_l + chassis->M / arm_cos_f32(chassis->left_leg.theta) - chassis->roll_out*2.0f - chassis->F_mc + 23.0f);
-    chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) - chassis->roll_out*2.0f - chassis->F_mc);
-    // chassis->left_leg.F0 = (chassis->PID_legL_Position.Out + chassis->PID_legL_Velocity.Out - chassis->spring_force_l + chassis->M / arm_cos_f32(chassis->left_leg.theta) + 0.0f);
-    // chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) );
-    //通过leg_convert得到髋关节每个电机应有的力矩
+    chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) - chassis->roll_out*2.0f - chassis->F_mc);//通过leg_convert得到髋关节每个电机应有的力矩
     VMC_Calc_2(&chassis->left_leg);
     VMC_Calc_2(&chassis->right_leg);
 }

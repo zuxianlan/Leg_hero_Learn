@@ -1,7 +1,7 @@
 /**
 ******************************************************************************
   * @file           : Kalman_filter.h
-  * @brief          : µ×ÅÌÇ°½øËÙ¶È¶şÎ¬¿¨¶ûÂüÂË²¨Æ÷£¨»úÌåÏµÀï³Ì¼Æ + ¼ÓËÙ¶È¼Æ£©
+  * @brief          : åº•ç›˜å‰è¿›é€Ÿåº¦äºŒç»´å¡å°”æ›¼æ»¤æ³¢å™¨ï¼ˆæœºä½“ç³»é‡Œç¨‹è®¡ + åŠ é€Ÿåº¦è®¡ï¼‰
   ******************************************************************************
   */
 #ifndef CTRLBOARD_H7_IMU_KALMAN_FILTER_H
@@ -9,23 +9,23 @@
 
 typedef struct
 {
-    /* ---------- ÂË²¨Æ÷Ä£ĞÍ²ÎÊı ---------- */
-    float x_hat[2];     // ºóÑé×´Ì¬¹À¼Æ
-    float x_hat_p[2];   // ÏÈÑé×´Ì¬¹À¼Æ
-    float K[2][2];      // ¿¨¶ûÂüÔöÒæ¾ØÕó
-    float P[2][2];      // ºóÑéÎó²îĞ­·½²î
-    float P_p[2][2];    // ÏÈÑéÎó²îĞ­·½²î
-    float F[2][2];      // ×´Ì¬×ªÒÆ¾ØÕó
-    float Q[2][2];      // ¹ı³ÌÔëÉùĞ­·½²î
-    float H[2][2];      // ¹Û²â¾ØÕó
-    float R[2][2];      // ²âÁ¿ÔëÉùĞ­·½²î
-    float z[2];         // ²âÁ¿ÏòÁ¿
-    float StateMinVariance[2];           // Ğ­·½²î¶Ô½ÇÔªÏÂ½ç£¬·ÀÖ¹¹ı¶ÈÊÕÁ²
+    /* ---------- æ»¤æ³¢å™¨æ¨¡å‹å‚æ•° ---------- */
+    float x_hat[2];     // åéªŒçŠ¶æ€ä¼°è®¡
+    float x_hat_p[2];   // å…ˆéªŒçŠ¶æ€ä¼°è®¡
+    float K[2][2];      // å¡å°”æ›¼å¢ç›ŠçŸ©é˜µ
+    float P[2][2];      // åéªŒè¯¯å·®åæ–¹å·®
+    float P_p[2][2];    // å…ˆéªŒè¯¯å·®åæ–¹å·®
+    float F[2][2];      // çŠ¶æ€è½¬ç§»çŸ©é˜µ
+    float Q[2][2];      // è¿‡ç¨‹å™ªå£°åæ–¹å·®
+    float H[2][2];      // è§‚æµ‹çŸ©é˜µ
+    float R[2][2];      // æµ‹é‡å™ªå£°åæ–¹å·®
+    float z[2];         // æµ‹é‡å‘é‡
+    float StateMinVariance[2];           // åæ–¹å·®å¯¹è§’å…ƒä¸‹ç•Œï¼Œé˜²æ­¢è¿‡åº¦æ”¶æ•›
 } chassis_kalman_t;
 
 extern void chassis_kalman_init(chassis_kalman_t *kf);
 extern void chassis_kalman_update(chassis_kalman_t *kf);
 extern chassis_kalman_t chassis_kalman;
-#define CHASSIS_KF_DT  0.001f       // ¿ØÖÆÖÜÆÚ s£¬Óë osDelay(1) ¶ÔÓ¦
+#define CHASSIS_KF_DT  0.001f       // æ§åˆ¶å‘¨æœŸ sï¼Œä¸ osDelay(1) å¯¹åº”
 #define MIN_VARIANCE 0.03f
 #endif //CTRLBOARD_H7_IMU_KALMAN_FILTER_H
