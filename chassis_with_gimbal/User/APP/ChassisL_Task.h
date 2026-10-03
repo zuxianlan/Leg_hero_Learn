@@ -55,11 +55,37 @@ typedef enum
 
 typedef struct
 {
+    float Target_Leg_l;
+    float Target_Leg_r;
+    float Target_Roll;
+    float Target_Theta; //目标误差
+    float Target_X; //目标位移
+    float Target_Velocity_X; //目标速度
+    float Slope_Velocity_X; //目标速度
+    float Target_Velocity_Y;
+    float Target_Omega; //目标偏航角速度
+    float follow_yaw_offset; // 跟随航向角偏移
+} Chassis_target_t;
+
+typedef struct
+{
+    float Omega_l;
+    float Omega_r;
+    float Speed_l;
+    float Speed_r;
+    float Average_Speed;
+    float Velocity_filter; // 滤波后的前进速度估计值（m/s）
+    float X_filter; // 滤波后的前进位移估计值（m）
+}Wheel_data_t;
+typedef struct
+{
     const RC_ctrl_t *chassis_RC; //底盘使用的遥控器指针, the point to remote control
     const INS_t *chassis_INS_point;
     RC_ctrl_t Chassis_RC;
     Slope_t Slope_X; //斜坡函数
     FSM_t FSM; // 底盘状态机切换函数
+    Chassis_target_t Chassis_target;
+    Wheel_data_t Wheel_data;
 
     cap_rx_data_t Super_Cap_Rx;
     cap_tx_data_t Super_Cap_Tx;
@@ -90,24 +116,6 @@ typedef struct
     Motor_Status_t joint_motor_status[4];
     Motor_Status_t wheel_motor_status[2];
 
-    float Target_Leg_l;
-    float Target_Leg_r;
-    float Target_Roll;
-    float Target_Theta; //目标误差
-    float Target_X; //目标位移
-    float Target_Velocity_X; //目标速度
-    float Slope_Velocity_X; //目标速度
-    float Target_Velocity_Y;
-    float Target_Omega; //目标偏航角速度
-    float follow_yaw_offset; // 跟随航向角偏移
-
-    float Omega_l;
-    float Omega_r;
-    float Speed_l;
-    float Speed_r;
-    float Average_Speed;
-    float Velocity_filter; // 滤波后的前进速度估计值（m/s）
-    float X_filter; // 滤波后的前进位移估计值（m）
     float theta_err; // 两腿夹角误差
     float d_theta_err;
     float spring_force_l; //左腿弹簧补偿力

@@ -114,9 +114,9 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     chassis_move_init->Motor_Wheel[1].Gearbox_Rate = 15.17f;
 
     //跟随航向角偏移
-    chassis_move_init->follow_yaw_offset = 2.34f;
-    chassis_move_init->Target_Leg_l = 0.0f;
-    chassis_move_init->Target_Leg_r = 0.0f;
+    chassis_move_init->Chassis_target.follow_yaw_offset = 2.34f;
+    chassis_move_init->Chassis_target.Target_Leg_l = 0.0f;
+    chassis_move_init->Chassis_target.Target_Leg_r = 0.0f;
 
     // 底盘 PID 初始化
     PID_Init(&chassis_move_init->PID_legL_Position, 1000.0f, 100.0f, 0.0f, 0.0f, 30.0f, 200.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
@@ -175,28 +175,28 @@ void Chassis_Feedback_Update(chassis_move_t *chassis)
 
     chassis->theta_err = -(chassis->left_leg.theta - chassis->right_leg.theta);
     chassis->d_theta_err = -(chassis->left_leg.d_theta - chassis->right_leg.d_theta);
-    chassis->Omega_l = chassis->Motor_Wheel[0].Rx_Data.Now_Omega - chassis->d_pitch + chassis->left_leg.d_theta;
-    chassis->Omega_r = chassis->Motor_Wheel[1].Rx_Data.Now_Omega - chassis->d_pitch + chassis->right_leg.d_theta;
-    chassis->Speed_l = 0.06f * chassis->Omega_l + chassis->left_leg.L0 * chassis->left_leg.d_theta * arm_cos_f32(chassis->left_leg.theta) + chassis->left_leg.d_L0 * arm_sin_f32(chassis->left_leg.theta);
-    chassis->Speed_r = 0.06f * chassis->Omega_r + chassis->right_leg.L0 * chassis->right_leg.d_theta * arm_cos_f32(chassis->right_leg.theta) + chassis->right_leg.d_L0 * arm_sin_f32(chassis->right_leg.theta);
-    chassis->Average_Speed = -(chassis->Speed_l - chassis->Speed_r) / 2.0f;
+    chassis->Wheel_data.Omega_l = chassis->Motor_Wheel[0].Rx_Data.Now_Omega - chassis->d_pitch + chassis->left_leg.d_theta;
+    chassis->Wheel_data.Omega_r = chassis->Motor_Wheel[1].Rx_Data.Now_Omega - chassis->d_pitch + chassis->right_leg.d_theta;
+    chassis->Wheel_data.Speed_l = 0.06f * chassis->Wheel_data.Omega_l + chassis->left_leg.L0 * chassis->left_leg.d_theta * arm_cos_f32(chassis->left_leg.theta) + chassis->left_leg.d_L0 * arm_sin_f32(chassis->left_leg.theta);
+    chassis->Wheel_data.Speed_r = 0.06f * chassis->Wheel_data.Omega_r + chassis->right_leg.L0 * chassis->right_leg.d_theta * arm_cos_f32(chassis->right_leg.theta) + chassis->right_leg.d_L0 * arm_sin_f32(chassis->right_leg.theta);
+    chassis->Wheel_data.Average_Speed = -(chassis->Wheel_data.Speed_l - chassis->Wheel_data.Speed_r) / 2.0f;
     //更新卡尔曼
     chassis_kalman_update(&chassis_kalman);
-    chassis->X_filter += chassis->Velocity_filter * (float)chassis_time/1000.0f;
+    chassis->Wheel_data.X_filter += chassis->Wheel_data.Velocity_filter * (float)chassis_time/1000.0f;
 
     chassis->M = 180.0f;
-    chassis_move.F_mc = chassis->Velocity_filter * chassis->chassis_INS_point->Gyro[2] * 28.0f;
+    chassis_move.F_mc = chassis->Wheel_data.Velocity_filter * chassis->chassis_INS_point->Gyro[2] * 28.0f;
     Math_Constrain(&chassis->F_mc, -100.0f, 100.0f);
     chassis->spring_force_l = 100.0f - 10.0f*(1.0f - (chassis->left_leg.L0-0.1f)/0.28f);
     chassis->spring_force_r = 100.0f - 10.0f*(1.0f - (chassis->right_leg.L0-0.1f)/0.28f);
 
-    chassis->err[0] = chassis->X_filter - chassis->Target_X;
-    chassis->err[1] = chassis->Velocity_filter - chassis->Slope_Velocity_X;
+    chassis->err[0] = chassis->Wheel_data.X_filter - chassis->Chassis_target.Target_X;
+    chassis->err[1] = chassis->Wheel_data.Velocity_filter - chassis->Chassis_target.Slope_Velocity_X;
     chassis->err[2] = 0;
-    chassis->err[3] = chassis->chassis_INS_point->Gyro[2] - chassis->Target_Omega;
-    chassis->err[4] = Max_Output((chassis->left_leg.theta - chassis->Target_Theta), 0.5f);
+    chassis->err[3] = chassis->chassis_INS_point->Gyro[2] - chassis->Chassis_target.Target_Omega;
+    chassis->err[4] = Max_Output((chassis->left_leg.theta - chassis->Chassis_target.Target_Theta), 0.5f);
     chassis->err[5] = chassis->left_leg.d_theta - 0;
-    chassis->err[6] = Max_Output((chassis->right_leg.theta - chassis->Target_Theta), 0.5f);
+    chassis->err[6] = Max_Output((chassis->right_leg.theta - chassis->Chassis_target.Target_Theta), 0.5f);
     chassis->err[7] = chassis->right_leg.d_theta - 0;
     chassis->err[8] = Max_Output((chassis->pitch - 0), 1.0f);
     chassis->err[9] = chassis->d_pitch - 0;
@@ -260,19 +260,19 @@ static void chassis_control_loop(chassis_move_t *chassis)
 static void chassis_normal_pid_loop(chassis_move_t *chassis)
 {
     //设定速度
-    chassis->Slope_X.Target = chassis->Target_Velocity_X;
-    chassis->Slope_X.Now_Real = chassis->Velocity_filter;
+    chassis->Slope_X.Target = chassis->Chassis_target.Target_Velocity_X;
+    chassis->Slope_X.Now_Real = chassis->Wheel_data.Velocity_filter;
     slope_calc(&chassis->Slope_X);
-    chassis->Slope_Velocity_X = chassis->Slope_X.Out;
+    chassis->Chassis_target.Slope_Velocity_X = chassis->Slope_X.Out;
 
     // 设置左腿长度目标
-    chassis->PID_legL_Position.Target += chassis->Target_Leg_l;
+    chassis->PID_legL_Position.Target += chassis->Chassis_target.Target_Leg_l;
     Math_Constrain(&chassis->PID_legL_Position.Target, MIN_LEG_LENGTH, MAX_LEG_LENGTH);
     chassis->PID_legL_Position.Now = chassis->left_leg.L0;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_legL_Position);
 
     // 设置右腿长度目标
-    chassis->PID_legR_Position.Target += chassis->Target_Leg_r;
+    chassis->PID_legR_Position.Target += chassis->Chassis_target.Target_Leg_r;
     Math_Constrain(&chassis->PID_legR_Position.Target, MIN_LEG_LENGTH, MAX_LEG_LENGTH);
     chassis->PID_legR_Position.Now = chassis->right_leg.L0;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_legR_Position);
@@ -289,10 +289,10 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
 
     // 云台跟随偏航：目标与反馈保持同一坐标系，误差折叠到 ±π 走最短路径
     float yaw_now = chassis->Motor_Yaw.Rx_Data.Now_Angle;          // 原始多圈角
-    float yaw_err = normalizeAngleToPi_Robust(chassis->follow_yaw_offset - yaw_now);
+    float yaw_err = normalizeAngleToPi_Robust(chassis->Chassis_target.follow_yaw_offset - yaw_now);
     // 设置yaw目标
-    chassis->PID_follow_yaw.Target = chassis->follow_yaw_offset;
-    chassis->PID_follow_yaw.Now = chassis->follow_yaw_offset - yaw_err;
+    chassis->PID_follow_yaw.Target = chassis->Chassis_target.follow_yaw_offset;
+    chassis->PID_follow_yaw.Now = chassis->Chassis_target.follow_yaw_offset - yaw_err;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_follow_yaw);
 
     // 设置横滚目标
@@ -306,7 +306,7 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
     Math_Constrain(&chassis->roll_out, -90.0f, 90.0f);
 
     // 设置 theta 误差目标
-    chassis->PID_tp.Target = chassis->Target_Theta;
+    chassis->PID_tp.Target = chassis->Chassis_target.Target_Theta;
     Math_Constrain(&chassis->PID_tp.Target, -PI/6.0f, PI/6.0f);
     chassis->PID_tp.Now = chassis->theta_err;
     PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_tp);
@@ -526,22 +526,22 @@ void chassis_stop_state_machine(chassis_move_t *chassis)
     /* ---- 只在跟云台模式下生效；其它模式保持位置环关闭 ---- */
     if (chassis_mode != CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
     {
-        chassis->X_filter       = 0.0f;
-        chassis->Target_X       = 0.0f;
+        chassis->Wheel_data.X_filter       = 0.0f;
+        chassis->Chassis_target.Target_X       = 0.0f;
         chassis->last_Target_X  = 0.0f;
-        chassis->Target_Theta   = 0.0f;
+        chassis->Chassis_target.Target_Theta   = 0.0f;
         chassis->stop_flag      = 1;
         chassis->last_stop_flag = 1;
         return;
     }
 
     /* ================= 1. 停车判定（带回差，防止阈值附近抖动） ================= */
-    if (Float_Math_Abs(chassis->Target_Velocity_X) < 0.05f &&
-        Float_Math_Abs(chassis->Velocity_filter)    < 0.5f)
+    if (Float_Math_Abs(chassis->Chassis_target.Target_Velocity_X) < 0.05f &&
+        Float_Math_Abs(chassis->Wheel_data.Velocity_filter)    < 0.5f)
     {
         chassis->stop_flag = 1;      /* 指令小 且 实际也慢 -> 认为停稳 */
     }
-    else if (Float_Math_Abs(chassis->Target_Velocity_X) > 0.01f)
+    else if (Float_Math_Abs(chassis->Chassis_target.Target_Velocity_X) > 0.01f)
     {
         chassis->stop_flag = 0;      /* 一有明确指令 -> 立即解除，保证起步不拖 */
     }
@@ -552,27 +552,27 @@ void chassis_stop_state_machine(chassis_move_t *chassis)
         if (!chassis->last_stop_flag)
         {
             /* 刚进入停止：把当前位置定为原点，这一拍还不启用位置环 */
-            chassis->X_filter      = 0.0f;
-            chassis->Target_X      = chassis->X_filter;
-            chassis->last_Target_X = chassis->X_filter;
-            chassis->Target_Theta  = 0.0f;
+            chassis->Wheel_data.X_filter = 0.0f;
+            chassis->Chassis_target.Target_X = chassis->Wheel_data.X_filter;
+            chassis->last_Target_X = chassis->Wheel_data.X_filter;
+            chassis->Chassis_target.Target_Theta  = 0.0f;
         }
         else
         {
             /* 持续停止：X_filter 不再清零，让它自由积分，
                于是 err[0] = X_filter - Target_X(0) 就是"回到停车点"的位置误差 */
-            chassis->Target_X     = chassis->last_Target_X;   /* 恒为 0 */
-            chassis->Target_Theta = 0.05f;              /* 静止预紧偏置 */
+            chassis->Chassis_target.Target_X = chassis->last_Target_X;   /* 恒为 0 */
+            chassis->Chassis_target.Target_Theta = 0.05f;              /* 静止预紧偏置 */
         }
     }
     else
     {
         /* 运动中：位置环彻底关掉；Target_Theta 归零，
            否则这个常值偏置会在行驶时吃掉绝大部分轮电流预算 */
-        chassis->X_filter      = 0.0f;
-        chassis->Target_X      = chassis->X_filter;
-        chassis->last_Target_X = chassis->X_filter;
-        chassis->Target_Theta  = 0.0f;
+        chassis->Wheel_data.X_filter = 0.0f;
+        chassis->Chassis_target.Target_X = chassis->Wheel_data.X_filter;
+        chassis->last_Target_X = chassis->Wheel_data.X_filter;
+        chassis->Chassis_target.Target_Theta  = 0.0f;
     }
 
     chassis->last_stop_flag = chassis->stop_flag;

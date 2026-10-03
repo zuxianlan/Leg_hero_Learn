@@ -52,9 +52,9 @@ void chassis_kalman_init(chassis_kalman_t *kf)
   */
 void chassis_kalman_update(chassis_kalman_t *kf)
 {
-    if (!isfinite(chassis_move.Speed_l))       { chassis_move.Speed_l = 0.0f; }
-    if (!isfinite(chassis_move.Speed_r))       { chassis_move.Speed_r = 0.0f; }
-    if (!isfinite(chassis_move.Average_Speed)) { chassis_move.Average_Speed = 0.0f; }
+    if (!isfinite(chassis_move.Wheel_data.Speed_l))       { chassis_move.Wheel_data.Speed_l = 0.0f; }
+    if (!isfinite(chassis_move.Wheel_data.Speed_r))       { chassis_move.Wheel_data.Speed_r = 0.0f; }
+    if (!isfinite(chassis_move.Wheel_data.Average_Speed)) { chassis_move.Wheel_data.Average_Speed = 0.0f; }
 
     /* ---------- 局部临时量：对应卡尔曼滤波公式中的中间矩阵 ----------
      * 记号约定（与本文件里的数组名一一对应）：
@@ -71,7 +71,7 @@ void chassis_kalman_update(chassis_kalman_t *kf)
     float det;              /* det = |S| = S11·S22 - S12·S21   2×2 行列式，用于求逆 */
 
     /* ---------- 测量向量 z ---------- */
-    kf->z[0] = chassis_move.Average_Speed;
+    kf->z[0] = chassis_move.Wheel_data.Average_Speed;
     kf->z[1] = chassis_move.chassis_INS_point->MotionAccel_b[1];;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
     //kf->z[1] = 0.0f;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
 
@@ -166,5 +166,5 @@ void chassis_kalman_update(chassis_kalman_t *kf)
     }
 
     /* ================= 步骤7  输出（必须在最后） ================= */
-    chassis_move.Velocity_filter = kf->x_hat[0];
+    chassis_move.Wheel_data.Velocity_filter = kf->x_hat[0];
 }

@@ -41,10 +41,10 @@ void chassis_set_control(chassis_move_t *chassis)
     if (chassis == NULL)  {return;}
     if (chassis_mode == CHASSIS_ZERO_FORCE)
     {
-        chassis_move.Target_Omega = 0.0f;
-        chassis_move.Target_Roll = 0.0f;
-        chassis_move.Target_Theta = 0.0f;
-        chassis->Target_X = chassis->X_filter;
+        chassis_move.Chassis_target.Target_Omega = 0.0f;
+        chassis_move.Chassis_target.Target_Roll = 0.0f;
+        chassis_move.Chassis_target.Target_Theta = 0.0f;
+        chassis->Chassis_target.Target_X = chassis->Wheel_data.X_filter;
 
     }
     else if (chassis_mode == CHASSIS_CHECK_IN)
@@ -53,13 +53,13 @@ void chassis_set_control(chassis_move_t *chassis)
         vx_channel = -chassis->chassis_RC->RC.ch[2];
         // 遥控器摇杆可能存在偏差，死区范围内的输入置零
         vx_channel = Float_Math_Abs(vx_channel) > DR16_Rocker_Dead_Zone ? vx_channel : 0.0f;
-        chassis_move.Target_Velocity_X = vx_channel * MAX_Velocity_X;
-        chassis_move.Target_Omega = 0.0f;
-        chassis_move.Target_Roll = 0.0f;
-        chassis_move.Target_Theta = 0.0f;
+        chassis_move.Chassis_target.Target_Velocity_X = vx_channel * MAX_Velocity_X;
+        chassis_move.Chassis_target.Target_Omega = 0.0f;
+        chassis_move.Chassis_target.Target_Roll = 0.0f;
+        chassis_move.Chassis_target.Target_Theta = 0.0f;
 
-        chassis_move.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
-        chassis_move.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
+        chassis_move.Chassis_target.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
+        chassis_move.Chassis_target.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
     }
     else if (chassis_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
     {
@@ -72,15 +72,11 @@ void chassis_set_control(chassis_move_t *chassis)
         vy_channel = Float_Math_Abs(vy_channel) > DR16_Rocker_Dead_Zone ? vy_channel : 0.0f;
         vz_channel = Float_Math_Abs(vz_channel) > DR16_Rocker_Dead_Zone ? vz_channel : 0.0f;
 
-        // 设置速度
-        chassis_move.Target_Velocity_X = vx_channel * MAX_Velocity_X;
-        // 设置偏航角速度
-        chassis_move.Target_Omega = -chassis->PID_follow_yaw.Out;
-        chassis_move.Target_Roll = 0.0f;
-        //chassis_move.Target_Theta = 0.06f;
-
-        chassis_move.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
-        chassis_move.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
+        chassis_move.Chassis_target.Target_Velocity_X = vx_channel * MAX_Velocity_X;  // 设置速度
+        chassis_move.Chassis_target.Target_Omega = -chassis->PID_follow_yaw.Out; // 设置偏航角速度
+        chassis_move.Chassis_target.Target_Roll = 0.0f;
+        chassis_move.Chassis_target.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
+        chassis_move.Chassis_target.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
     }
 
 }
@@ -172,11 +168,11 @@ void chassis_control_right_leg(float target)
 
 void chassis_over_turn_mod(chassis_move_t *chassis)
 {
-    chassis->Target_Velocity_X = 0.0f;
-    chassis->Target_X          = 0.0f;
-    chassis->Target_Omega      = 0.0f;
-    chassis->Target_Roll       = 0.0f;
-    chassis->Target_Theta      = 0.0f;
+    chassis->Chassis_target.Target_Velocity_X = 0.0f;
+    chassis->Chassis_target.Target_X          = 0.0f;
+    chassis->Chassis_target.Target_Omega      = 0.0f;
+    chassis->Chassis_target.Target_Roll       = 0.0f;
+    chassis->Chassis_target.Target_Theta      = 0.0f;
 
     if (chassis->left_leg.theta < -0.9f || chassis->left_leg.theta > 1.4f)
     {
