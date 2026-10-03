@@ -242,6 +242,7 @@ void INS_Init(void)
     // HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
 
     // INS.AccelLPF = 0.0085f;
+    INS.AccelLPF = 0.05f;
 }
 
 void INS_Task(void)

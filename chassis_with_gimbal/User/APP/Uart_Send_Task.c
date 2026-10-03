@@ -74,10 +74,13 @@ void UART_Send_feedback_update(float data[])
     // data[4] = chassis_move.T_wl;
     // data[5] = chassis_move.T_wr;
 
-    data[0] = chassis_move.chassis_RC->RC.ch[1];
-    data[1] = chassis_move.chassis_RC->RC.ch[2];
-    data[2] = chassis_move.chassis_RC->RC.ch[3];
-    data[3] = chassis_move.chassis_RC->RC.ch[4];
+    // data[0] = chassis_move.chassis_RC->RC.ch[1];
+    // data[1] = chassis_move.chassis_RC->RC.ch[2];
+    // data[2] = chassis_move.chassis_RC->RC.ch[3];
+    // data[3] = chassis_move.chassis_RC->RC.ch[4];
+
+    // data[0] = chassis_move.Average_Speed;
+    // data[1] = chassis_move.chassis_INS_point->MotionAccel_b[1];
     VOFA_Transmit_JustFloat(data,10);
 }
 

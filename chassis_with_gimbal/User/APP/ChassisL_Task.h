@@ -99,7 +99,6 @@ typedef struct
     float Slope_Velocity_X; //目标速度
     float Target_Velocity_Y;
     float Target_Omega; //目标偏航角速度
-    float follow_yaw_angle;
     float follow_yaw_offset; // 跟随航向角偏移
 
     float Omega_l;
@@ -119,8 +118,6 @@ typedef struct
     float T[4]; //LQR_Calc 输出的四路力矩：T_wl(左轮) T_wr(右轮) T_bl(左髋) T_br(右髋)
     float T_wl; //左轮电机力矩
     float T_wr; //右轮电机力矩
-    float T_bl; //左髋关节力矩
-    float T_br; //右髋关节力矩
     float err[10]; // 10 维状态误差向量，顺序：X ? 偏航 偏航率 θ_L θ?_L θ_R θ?_R 机体俯仰 俯仰率
 
     /* ---- 停车判定与静止位置闭环 ---- */

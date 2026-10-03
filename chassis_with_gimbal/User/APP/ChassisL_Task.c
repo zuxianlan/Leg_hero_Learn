@@ -124,7 +124,7 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     PID_Init(&chassis_move_init->PID_legL_Velocity, 50.0f, 0.0f, 0.0f, 0.0f, 5.0f, 30.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_legR_Velocity, 50.0f, 0.0f, 0.0f, 0.0f, 5.0f, 30.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_follow_yaw, 10.0f, 0.1f, 0.01f, 0.00f, 0.3f, 4.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_DISABLE);
-    PID_Init(&chassis_move_init->PID_roll, 80.0f, 0.0f, 10.0f, 0.0f, 0.0f, 90.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
+    PID_Init(&chassis_move_init->PID_roll, 150.0f, 0.0f, 20.0f, 0.0f, 0.0f, 90.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_tp, 50.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.01f, 0.0f, 0.0f, 0.0f,0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_tp_omega, 1.5f, 0.0f, 0.0f, 0.00f, 0.0f, 10.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_buffer, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.1f, 0.0f, 0.0f, 0.0f,0.0f, PID_D_First_DISABLE);
@@ -186,7 +186,7 @@ void Chassis_Feedback_Update(chassis_move_t *chassis)
 
     chassis->M = 180.0f;
     chassis_move.F_mc = chassis->Velocity_filter * chassis->chassis_INS_point->Gyro[2] * 28.0f;
-    Math_Constrain(&chassis->F_mc, 0.0f, 100.0f);
+    Math_Constrain(&chassis->F_mc, -100.0f, 100.0f);
     chassis->spring_force_l = 100.0f - 10.0f*(1.0f - (chassis->left_leg.L0-0.1f)/0.28f);
     chassis->spring_force_r = 100.0f - 10.0f*(1.0f - (chassis->right_leg.L0-0.1f)/0.28f);
 
@@ -303,7 +303,7 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
     //横滚力矩
     float roll_torque = chassis->PID_roll.K_P * (0.0f - chassis->roll) + chassis->PID_roll.K_D * (0.0f - chassis->d_roll);
     chassis->roll_out = roll_torque / B_TRACK;
-    Math_Constrain(&chassis->roll_out, -20.0f, 20.0f);
+    Math_Constrain(&chassis->roll_out, -90.0f, 90.0f);
 
     // 设置 theta 误差目标
     chassis->PID_tp.Target = chassis->Target_Theta;
@@ -381,8 +381,8 @@ static void chassis_output_to_motor(chassis_move_t *chassis)
         chassis->Motor_Joint[1].Control_Torque = float_constrain(-chassis->left_leg.torque_set[1] * 1.0f, -35.0f, 35.0f);
         chassis->Motor_Joint[0].Control_Torque = float_constrain(-chassis->left_leg.torque_set[0] * 1.0f, -35.0f, 35.0f);
 
-        chassis->Motor_Wheel[0].Target_Current = float_constrain(4.0f * chassis->T_wl, -15.0f, 15.0f);
-        chassis->Motor_Wheel[1].Target_Current = float_constrain(-4.0f * chassis->T_wr, -15.0f, 15.0f);
+        chassis->Motor_Wheel[0].Target_Current = float_constrain(4.0f * chassis->T_wl, -18.0f, 18.0f);
+        chassis->Motor_Wheel[1].Target_Current = float_constrain(-4.0f * chassis->T_wr, -18.0f, 18.0f);
 
         // chassis->Motor_Joint[3].Control_Torque = 0.0f;
         // chassis->Motor_Joint[2].Control_Torque = 0.0f;

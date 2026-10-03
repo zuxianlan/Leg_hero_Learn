@@ -72,8 +72,8 @@ void chassis_kalman_update(chassis_kalman_t *kf)
 
     /* ---------- 测量向量 z ---------- */
     kf->z[0] = chassis_move.Average_Speed;
-    // kf->z[1] = chassis_move.chassis_INS_point->MotionAccel_n[1];;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
-    kf->z[1] = 0.0f;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
+    kf->z[1] = chassis_move.chassis_INS_point->MotionAccel_b[1];;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
+    //kf->z[1] = 0.0f;   /* MotionAccel_n[1] 在下位机侧恒为零（AccelLPF 未初始化），先传 0 */
 
     /* ================= 步骤1  先验状态估计  x_hat_p = F·x_hat ================= */
     kf->x_hat_p[0] = kf->F[0][0] * kf->x_hat[0] + kf->F[0][1] * kf->x_hat[1];
