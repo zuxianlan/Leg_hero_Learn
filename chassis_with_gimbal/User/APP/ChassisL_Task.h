@@ -26,8 +26,9 @@
 #define RC_to_Chassis_Leg_Gain 0.0006f
 #define DR16_Rocker_Dead_Zone 0.05f
 // 最大速度
-#define MAX_Velocity_X 2.0f
+#define MAX_Velocity_X 2.5f
 #define MAX_Velocity_Y 1.0f
+#define B_TRACK   0.49f      /* 左右轮距，按实际量 */
 /* Enum ----------------------------------------------------------------------*/
 
 /* Struct --------------------------------------------------------------------*/
@@ -50,11 +51,6 @@ typedef enum
     NORMAL, // 底盘正常状态
     OVER_TURN, // 底盘翻倒
     OVER_TURNING, // 底盘正在翻身
-    READY_TO_JUMP, // 准备跳跃
-    GATHER_STRENGTH, // 跳跃蓄力
-    TAKE_OFF_TO_JUMP, // 起跳伸腿
-    LANDING_CUSHIONING, // 落地缓冲
-    ABOVE_GROUND, // 底盘离地
 } chassis_fsm_mode_e;
 
 typedef struct
@@ -63,6 +59,7 @@ typedef struct
     const INS_t *chassis_INS_point;
     RC_ctrl_t Chassis_RC;
     Slope_t Slope_X; //斜坡函数
+    FSM_t FSM; // 底盘状态机切换函数
 
     cap_rx_data_t Super_Cap_Rx;
     cap_tx_data_t Super_Cap_Tx;
@@ -73,6 +70,8 @@ typedef struct
     float pitch;
     float d_pitch;
     float roll;
+    float d_roll;
+    float roll_out;
 
     PID_control PID_buffer; // 左腿变腿长pid
     PID_control PID_legL_Position; // 左腿变腿长pid
@@ -130,5 +129,7 @@ typedef struct
 /* Function ------------------------------------------------------------------*/
 
 extern uint8_t cap[8];
+extern float Fitting_K[4][10];
 extern chassis_move_t chassis_move;
+extern chassis_mode_e chassis_mode;
 #endif //CHASSISL_TASK_H
