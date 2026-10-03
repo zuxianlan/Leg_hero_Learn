@@ -290,7 +290,7 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
     // 设置yaw目标
     chassis->PID_follow_yaw.Target = chassis->follow_yaw_offset;
     chassis->PID_follow_yaw.Now = normalizeAngleToPi_Robust(chassis->Motor_Yaw.Rx_Data.Now_Angle);
-    //PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_follow_yaw);
+    PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_follow_yaw);
 
     // 设置横滚目标
     // chassis->PID_roll.Target = chassis->Target_Roll;

@@ -126,17 +126,17 @@ static void chassis_init(chassis_move_t *chassis_move_init)
     PID_Init(&chassis_move_init->PID_legL_Velocity, 50.0f, 0.0f, 0.0f, 0.0f, 5.0f, 30.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_legR_Velocity, 50.0f, 0.0f, 0.0f, 0.0f, 5.0f, 30.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_follow_yaw, 10.0f, 0.1f, 0.01f, 0.00f, 0.3f, 4.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_DISABLE);
-    PID_Init(&chassis_move_init->PID_roll, 40.0f, 0.0f, 1.0f, 0.0f, 0.0f, 90.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
+    PID_Init(&chassis_move_init->PID_roll, 80.0f, 0.0f, 10.0f, 0.0f, 0.0f, 90.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_tp, 50.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.01f, 0.0f, 0.0f, 0.0f,0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_tp_omega, 1.5f, 0.0f, 0.0f, 0.00f, 0.0f, 10.0f, 0.001f, 0.0f, 0.0f, 0.0f, 0.0f, PID_D_First_ENABLE);
     PID_Init(&chassis_move_init->PID_buffer, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.1f, 0.0f, 0.0f, 0.0f,0.0f, PID_D_First_DISABLE);
 
-    chassis_move_init->PID_legL_Position.Target = 0.25f;
-    chassis_move_init->PID_legR_Position.Target = 0.25f;
+    chassis_move_init->PID_legL_Position.Target = 0.20f;
+    chassis_move_init->PID_legR_Position.Target = 0.20f;
     chassis_move_init->PID_legL_Velocity.Target = 0.0f;
     chassis_move_init->PID_legR_Velocity.Target = 0.0f;
     //斜坡函数初始化
-    slope_init(&chassis_move_init->Slope_X,1.0f / 1250.0f, 1.0f / 150.0f,Slope_First_REAL);
+    slope_init(&chassis_move_init->Slope_X,1.0f / 1000.0f, 1.0f / 150.0f,Slope_First_REAL);
 
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[0]);
     Motor_DM_Normal_CAN_Send_Enable(&chassis_move_init->Motor_Joint[1]);
@@ -169,7 +169,8 @@ void Chassis_Feedback_Update(chassis_move_t *chassis)
 
     chassis->pitch = -chassis->chassis_INS_point->Pitch;
     chassis->d_pitch = -chassis->chassis_INS_point->Gyro[0];
-    chassis->roll = -chassis->chassis_INS_point->Roll;
+    chassis->roll = -(chassis->chassis_INS_point->Roll - 0.019f);
+    chassis->d_roll = -chassis->chassis_INS_point->Gyro[1];
     // chassis->pitch = 0.0f;
     // chassis->d_pitch = 0.0f;
     // chassis->roll = 0.0f;
@@ -292,10 +293,14 @@ static void chassis_normal_pid_loop(chassis_move_t *chassis)
     //PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_follow_yaw);
 
     // 设置横滚目标
-    chassis->PID_roll.Target = chassis->Target_Roll;
-    Math_Constrain(&chassis->PID_roll.Target, -PI/10.0f, PI/10.0f);
-    chassis->PID_roll.Now = chassis->roll;
-    PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_roll);
+    // chassis->PID_roll.Target = chassis->Target_Roll;
+    // Math_Constrain(&chassis->PID_roll.Target, -PI/10.0f, PI/10.0f);
+    // chassis->PID_roll.Now = chassis->roll;
+    // PID_TIM_Adjust_PeriodElapsedCallback(&chassis->PID_roll);
+    //横滚力矩
+    float roll_torque = chassis->PID_roll.K_P * (0.0f - chassis->roll) + chassis->PID_roll.K_D * (0.0f - chassis->d_roll);
+    chassis->roll_out = roll_torque / B_TRACK;
+    Math_Constrain(&chassis->roll_out, -20.0f, 20.0f);
 
     // 设置 theta 误差目标
     chassis->PID_tp.Target = chassis->Target_Theta;
@@ -334,8 +339,10 @@ static void chassis_lqr_calc_to_motor(chassis_move_t *chassis)
     // chassis->right_leg.Tp = chassis->T[3] + chassis->PID_tp_omega.Out;
     chassis->left_leg.Tp = chassis->T[2];
     chassis->right_leg.Tp = chassis->T[3];
-    chassis->left_leg.F0 = (chassis->PID_legL_Position.Out + chassis->PID_legL_Velocity.Out - chassis->spring_force_l + chassis->M / arm_cos_f32(chassis->left_leg.theta) - chassis->PID_roll.Out - chassis->F_mc + 10.0f);
-    chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) + chassis->PID_roll.Out - chassis->F_mc - 0.0f);
+    chassis->left_leg.F0 = (chassis->PID_legL_Position.Out + chassis->PID_legL_Velocity.Out - chassis->spring_force_l + chassis->M / arm_cos_f32(chassis->left_leg.theta) - chassis->roll_out*2.0f - chassis->F_mc + 23.0f);
+    chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) - chassis->roll_out*2.0f - chassis->F_mc);
+    // chassis->left_leg.F0 = (chassis->PID_legL_Position.Out + chassis->PID_legL_Velocity.Out - chassis->spring_force_l + chassis->M / arm_cos_f32(chassis->left_leg.theta) + 0.0f);
+    // chassis->right_leg.F0 = (-chassis->PID_legR_Position.Out - chassis->PID_legR_Velocity.Out + chassis->spring_force_r - chassis->M / arm_cos_f32(chassis->right_leg.theta) );
     //通过leg_convert得到髋关节每个电机应有的力矩
     VMC_Calc_2(&chassis->left_leg);
     VMC_Calc_2(&chassis->right_leg);

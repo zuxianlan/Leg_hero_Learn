@@ -70,9 +70,9 @@ void chassis_set_control(chassis_move_t *chassis)
     else if (chassis_mode == CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW)
     {
         float vx_channel = 0, vy_channel = 0, vz_channel = 0;
-        vx_channel = chassis->chassis_RC->RC.ch[3];
+        vx_channel = chassis->chassis_RC->RC.ch[2];
         //vy_channel = chassis->chassis_RC->RC.ch[1];
-        vz_channel = chassis->chassis_RC->RC.ch[1];
+        vz_channel = chassis->chassis_RC->RC.ch[3];
         // Ò£¿ØÆ÷Ò¡¸Ë¿ÉÄÜ´æÔÚÆ«²î£¬ËÀÇø·¶Î§ÄÚµÄÊäÈëÖÃÁã
         vx_channel = Float_Math_Abs(vx_channel) > DR16_Rocker_Dead_Zone ? vx_channel : 0.0f;
         vy_channel = Float_Math_Abs(vy_channel) > DR16_Rocker_Dead_Zone ? vy_channel : 0.0f;

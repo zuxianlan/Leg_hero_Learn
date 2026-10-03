@@ -26,8 +26,9 @@
 #define RC_to_Chassis_Leg_Gain 0.0006f
 #define DR16_Rocker_Dead_Zone 0.05f
 // 最大速度
-#define MAX_Velocity_X 2.0f
+#define MAX_Velocity_X 2.5f
 #define MAX_Velocity_Y 1.0f
+#define B_TRACK   0.49f      /* 左右轮距，按实际量 */
 /* Enum ----------------------------------------------------------------------*/
 
 /* Struct --------------------------------------------------------------------*/
@@ -69,6 +70,8 @@ typedef struct
     float pitch;
     float d_pitch;
     float roll;
+    float d_roll;
+    float roll_out;
 
     PID_control PID_buffer; // 左腿变腿长pid
     PID_control PID_legL_Position; // 左腿变腿长pid
