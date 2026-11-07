@@ -101,7 +101,6 @@ set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32H723VGTX_FLASH.ld)
 
 add_link_options(-Wl,-gc-sections,--print-memory-usage,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
 add_link_options(-mcpu=cortex-m7 -mthumb -mthumb-interwork)
-add_link_options(-T ${LINKER_SCRIPT})
 
 # User link_directories BEGIN
 
@@ -109,19 +108,19 @@ link_directories(${CMAKE_SOURCE_DIR}/Middlewares/ST/ARM/DSP/Lib)
 
 # User link_directories END
 
-add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 # User target_link_libraries BEGIN
 
-target_link_libraries(${PROJECT_NAME}.elf PRIVATE libarm_cortexM4lf_math.a)
+target_link_libraries(${PROJECT_NAME} PRIVATE libarm_cortexM7lfdp_math.a m c)
 
 # User target_link_libraries END
 
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}> ${HEX_FILE}
+        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}> ${BIN_FILE}
         COMMENT "Building ${HEX_FILE}
 Building ${BIN_FILE}")

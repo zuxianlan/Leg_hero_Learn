@@ -399,11 +399,11 @@ static void chassis_output_to_motor(chassis_move_t *chassis)
         chassis->Motor_Joint[1].Control_Torque = 0.0f;
         chassis->Motor_Joint[0].Control_Torque = 0.0f;
 
-        // chassis->Motor_Wheel[0].Target_Current = float_constrain(2.0f * chassis->Target_Velocity_X, -3.0f, 3.0f);
-        // chassis->Motor_Wheel[1].Target_Current = float_constrain(-2.0f * chassis->Target_Velocity_X, -3.0f, 3.0f);
+        chassis->Motor_Wheel[0].Target_Current = float_constrain(2.0f * chassis->Chassis_target.Target_Velocity_X, -3.0f, 3.0f);
+        chassis->Motor_Wheel[1].Target_Current = float_constrain(-2.0f * chassis->Chassis_target.Target_Velocity_X, -3.0f, 3.0f);
 
-        chassis->Motor_Wheel[0].Target_Current = 0.0f;
-        chassis->Motor_Wheel[1].Target_Current = 0.0f;
+        // chassis->Motor_Wheel[0].Target_Current = 0.0f;
+        // chassis->Motor_Wheel[1].Target_Current = 0.0f;
     }
     // if (Can_Comm.Can_Control_Data.Rx_Data.robot_control_status==No_Control || chassis_mode == CHASSIS_ZERO_FORCE)
     if (chassis_mode == CHASSIS_ZERO_FORCE)

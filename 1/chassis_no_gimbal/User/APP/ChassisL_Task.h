@@ -1,0 +1,134 @@
+/**
+  ******************************************************************************
+  * @file           : ChassisL_Task.h
+  * @author         : gagami
+  * @brief          : None
+  * @attention      : None
+  * @date           : 2025/8/6
+  ******************************************************************************
+  */
+#ifndef CHASSISL_TASK_H
+#define CHASSISL_TASK_H
+
+/* Includes ------------------------------------------------------------------*/
+#include "cmsis_os.h"
+#include "slope.h"
+#include "motor_dm.h"
+#include "remote_control.h"
+#include "fsm.h"
+#include "motor_dji.h"
+#include "super_cap.h"
+#include "VMC&LQR_Calc.h"
+
+/* Define --------------------------------------------------------------------*/
+#define MIN_LEG_LENGTH 0.13f
+#define MAX_LEG_LENGTH 0.38f
+#define RC_to_Chassis_Leg_Gain 0.0006f
+#define DR16_Rocker_Dead_Zone 0.05f
+// 最大速度
+#define MAX_Velocity_X 2.0f
+#define MAX_Velocity_Y 1.0f
+/* Enum ----------------------------------------------------------------------*/
+
+/* Struct --------------------------------------------------------------------*/
+typedef enum {
+    Motor_Status_OFFLINE = 0,
+    Motor_Status_NORMAL,
+    Motor_Status_LIGHT_STALL,
+    Motor_Status_HEAVY_STALL,
+} Motor_Status_t;
+
+typedef enum
+{
+    CHASSIS_ZERO_FORCE,                     // 底盘零力模式
+    CHASSIS_CHECK_IN,                       // 检录模式
+    CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,     // 底盘跟随云台偏航
+} chassis_mode_e;
+
+typedef enum
+{
+    NORMAL, // 底盘正常状态
+    OVER_TURN, // 底盘翻倒
+    OVER_TURNING, // 底盘正在翻身
+    READY_TO_JUMP, // 准备跳跃
+    GATHER_STRENGTH, // 跳跃蓄力
+    TAKE_OFF_TO_JUMP, // 起跳伸腿
+    LANDING_CUSHIONING, // 落地缓冲
+    ABOVE_GROUND, // 底盘离地
+} chassis_fsm_mode_e;
+
+typedef struct
+{
+    const RC_ctrl_t *chassis_RC; //底盘使用的遥控器指针, the point to remote control
+    const INS_t *chassis_INS_point;
+    RC_ctrl_t Chassis_RC;
+    Slope_t Slope_X; //斜坡函数
+
+    cap_rx_data_t Super_Cap_Rx;
+    cap_tx_data_t Super_Cap_Tx;
+
+    vmc_leg_t left_leg;
+    vmc_leg_t right_leg;
+
+    float pitch;
+    float d_pitch;
+    float roll;
+
+    PID_control PID_buffer; // 左腿变腿长pid
+    PID_control PID_legL_Position; // 左腿变腿长pid
+    PID_control PID_legR_Position; // 右腿变腿长pid
+    PID_control PID_legL_Velocity; // 左腿变腿长pid
+    PID_control PID_legR_Velocity; // 右腿变腿长pid
+    PID_control PID_follow_yaw;
+    PID_control PID_roll; // 横滚角pid
+    PID_control PID_tp; // 防劈叉pid
+    PID_control PID_tp_omega; // 防劈叉pid
+
+    Motor_DM_Normal Motor_Joint[4];
+    Motor_C620 Motor_Wheel[2];
+    Motor_DM_Normal Motor_Yaw;
+
+    Motor_Status_t joint_motor_status[4];
+    Motor_Status_t wheel_motor_status[2];
+
+    float Target_Leg_l;
+    float Target_Leg_r;
+    float Target_Roll;
+    float Target_Theta; //目标误差
+    float Target_X; //目标位移
+    float Target_Velocity_X; //目标速度
+    float Slope_Velocity_X; //目标速度
+    float Target_Velocity_Y;
+    float Target_Omega; //目标偏航角速度
+    float follow_yaw_angle;
+    float follow_yaw_offset; // 跟随航向角偏移
+
+    float Omega_l;
+    float Omega_r;
+    float Speed_l;
+    float Speed_r;
+    float Average_Speed;
+    float Velocity_filter; // 滤波后的前进速度估计值（m/s）
+    float X_filter; // 滤波后的前进位移估计值（m）
+    float theta_err; // 两腿夹角误差
+    float d_theta_err;
+    float spring_force_l; //左腿弹簧补偿力
+    float spring_force_r; //右腿弹簧补偿力
+    float M; // 重力补偿用等效质量系数（控制中按模式改写，如行驶模式置 180）
+    float F_mc; // 转弯离心力补偿前馈（≈ v·ω_yaw·28，截断 0~100 N）
+
+    float T[4]; //LQR_Calc 输出的四路力矩：T_wl(左轮) T_wr(右轮) T_bl(左髋) T_br(右髋)
+    float T_wl; //左轮电机力矩
+    float T_wr; //右轮电机力矩
+    float T_bl; //左髋关节力矩
+    float T_br; //右髋关节力矩
+    float err[10]; // 10 维状态误差向量，顺序：X ? 偏航 偏航率 θ_L θ?_L θ_R θ?_R 机体俯仰 俯仰率
+} chassis_move_t;
+
+/* Function Declaration ------------------------------------------------------*/
+
+/* Function ------------------------------------------------------------------*/
+
+extern uint8_t cap[8];
+extern chassis_move_t chassis_move;
+#endif //CHASSISL_TASK_H
