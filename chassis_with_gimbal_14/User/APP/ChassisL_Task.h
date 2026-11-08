@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
   * @file           : ChassisL_Task.h
-  * @author         : gagami
+  * @author         : zhuhechen
   * @brief          : None
   * @attention      : None
-  * @date           : 2025/8/6
+  * @date           : 2026/10/6
   ******************************************************************************
   */
 #ifndef CHASSISL_TASK_H
@@ -22,13 +22,16 @@
 
 /* Define --------------------------------------------------------------------*/
 #define MIN_LEG_LENGTH 0.13f
-#define MAX_LEG_LENGTH 0.38f
+#define MAX_LEG_LENGTH 0.39f
 #define RC_to_Chassis_Leg_Gain 0.0006f
 #define DR16_Rocker_Dead_Zone 0.05f
 // 最大速度
 #define MAX_Velocity_X 2.0f
 #define MAX_Velocity_Y 1.0f
-#define B_TRACK   0.49f      /* 左右轮距，按实际量 */
+#define B_TRACK   0.4f      /* 左右轮距，按实际量 */
+
+#define FIT_L_MIN 0.12f   /* P84 的拟合区间，超出会外推出巨大增益 */
+#define FIT_L_MAX 0.39f
 /* Enum ----------------------------------------------------------------------*/
 
 /* Struct --------------------------------------------------------------------*/
@@ -57,6 +60,7 @@ typedef struct
 {
     float Target_Leg_l;
     float Target_Leg_r;
+    float Target_H;    
     float Target_Roll;
     float Target_Theta; //目标误差
     float Target_X; //目标位移
@@ -98,6 +102,8 @@ typedef struct
     float roll;
     float d_roll;
     float roll_out;
+    float height;
+    float d_height;
 
     PID_control PID_buffer; // 左腿变腿长pid
     PID_control PID_legL_Position; // 左腿变腿长pid
@@ -123,10 +129,10 @@ typedef struct
     float M; // 重力补偿用等效质量系数（控制中按模式改写，如行驶模式置 180）
     float F_mc; // 转弯离心力补偿前馈（≈ v·ω_yaw·28，截断 0~100 N）
 
-    float T[4]; //LQR_Calc 输出的四路力矩：T_wl(左轮) T_wr(右轮) T_bl(左髋) T_br(右髋)
+    float T[6]; //LQR_Calc 输出的四路力矩：T_wl(左轮) T_wr(右轮) T_bl(左髋) T_br(右髋)
     float T_wl; //左轮电机力矩
     float T_wr; //右轮电机力矩
-    float err[10]; // 10 维状态误差向量，顺序：X ? 偏航 偏航率 θ_L θ?_L θ_R θ?_R 机体俯仰 俯仰率
+    float err[14]; // 10 维状态误差向量，顺序：X ? 偏航 偏航率 θ_L θ?_L θ_R θ?_R 机体俯仰 俯仰率
 
     /* ---- 停车判定与静止位置闭环 ---- */
     uint8_t stop_flag;        /* 1 = 已停稳，位置环使能 */
@@ -139,7 +145,7 @@ typedef struct
 /* Function ------------------------------------------------------------------*/
 
 extern uint8_t cap[8];
-extern float Fitting_K[4][10];
+extern float Fitting_K[6][14];
 extern chassis_move_t chassis_move;
 extern chassis_mode_e chassis_mode;
 #endif //CHASSISL_TASK_H

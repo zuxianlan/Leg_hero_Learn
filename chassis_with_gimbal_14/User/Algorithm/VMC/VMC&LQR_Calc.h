@@ -58,9 +58,10 @@ void VMC_Calc_2(vmc_leg_t *vmc);
 
 uint8_t ground_detection(vmc_leg_t *vmc, const INS_t *ins);
 
-void Fitting_K_Calc(float (*fitting_k)[10], float (*p)[6], float L_l, float L_r);
+//void Fitting_K_Calc(float (*fitting_k)[10], float (*p)[6], float L_l, float L_r);
+void Fitting_K_Calc(float (*fitting_k)[14], float (*p)[6], float L_l, float L_r);
 
 /* Function ------------------------------------------------------------------*/
-extern float P[40][6];
-
+//extern float P[40][6];
+extern float P[84][6];
 #endif //VMC_LQR_CALC_H

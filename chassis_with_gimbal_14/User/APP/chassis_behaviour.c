@@ -1,3 +1,12 @@
+/**
+  ******************************************************************************
+  * @file           : chassis_behaviour.c
+  * @author         : zhuhechen
+  * @brief          : None
+  * @attention      : None
+  * @date           : 2026/10/6
+  ******************************************************************************
+  */
 #include "chassis_behaviour.h"
 #include "ChassisL_Task.h"
 
@@ -75,8 +84,10 @@ void chassis_set_control(chassis_move_t *chassis)
         chassis_move.Chassis_target.Target_Velocity_X = vx_channel * MAX_Velocity_X;  // 设置速度
         chassis_move.Chassis_target.Target_Omega = -chassis->PID_follow_yaw.Out; // 设置偏航角速度
         chassis_move.Chassis_target.Target_Roll = 0.0f;
-        chassis_move.Chassis_target.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
-        chassis_move.Chassis_target.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
+        // chassis_move.Chassis_target.Target_Leg_l = vz_channel * RC_to_Chassis_Leg_Gain;
+        // chassis_move.Chassis_target.Target_Leg_r = vz_channel * RC_to_Chassis_Leg_Gain;
+        chassis_move.Chassis_target.Target_H += vz_channel * RC_to_Chassis_Leg_Gain;
+        Math_Constrain(&chassis->Chassis_target.Target_H, 0.12f, 0.35f);
     }
 
 }
@@ -236,4 +247,5 @@ void chassis_control_leg_pid_loop(chassis_move_t *chassis)
 
     VMC_Calc_2(&chassis->left_leg);
     VMC_Calc_2(&chassis->right_leg);
+    chassis->Chassis_target.Target_H = chassis->height;
 }
